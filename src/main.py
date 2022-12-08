@@ -11,11 +11,9 @@ import src.globals as g
 import src.ui.input as input
 import src.ui.video_selector as video_selector
 import src.ui.video_player as video_player
-import src.ui.settings as settings
+
+# import src.ui.settings as settings
 import src.ui.output as output
-
-
-settings = Container([input.card], direction="horizontal", gap=15, fractions=[1, 1])
 
 
 input_cards = Container(
@@ -26,7 +24,8 @@ input_cards = Container(
 )
 
 layout = Container(
-    widgets=[settings, output.card],
+    # widgets=[input.card, input_cards, settings.card, output.card],
+    widgets=[input.card, input_cards, output.card],
     direction="vertical",
     gap=15,
 )
