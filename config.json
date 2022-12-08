@@ -1,0 +1,21 @@
+{
+  "name": "Take fragment from video",
+  "version": "2.0.0",
+  "description": "Extract video fragment to selected project or dataset",
+  "categories": [
+    "videos",
+    "data transformation",
+    "data operations"
+  ],
+  "icon": "",
+  "poster": "",
+  "context_menu": {
+    "context_category": "Transform",
+    "target": [
+      "videos_project",
+      "videos_dataset"
+    ]
+  },
+  "entrypoint": "python -m uvicorn src.main:app --host 0.0.0.0 --port 8000",
+  "port": 8000
+}
