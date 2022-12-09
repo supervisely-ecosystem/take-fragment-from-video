@@ -1,12 +1,12 @@
 import supervisely as sly
 from supervisely.app.widgets import (
+    Button,
     Card,
+    Container,
+    Field,
+    InputNumber,
     Video,
     VideoThumbnail,
-    Container,
-    InputNumber,
-    Field,
-    Button,
 )
 
 import src.ui.output as output

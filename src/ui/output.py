@@ -1,20 +1,20 @@
 import os
+
 import supervisely as sly
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from supervisely.app.widgets import (
+    Button,
     Card,
+    Container,
     Field,
     Input,
-    Button,
-    Container,
-    VideoThumbnail,
     SlyTqdm,
+    VideoThumbnail,
 )
-import src.globals as g
 
+import src.globals as g
 import src.ui.video_player as video_player
 import src.ui.video_selector as video_selector
-from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
-
 
 # new project
 project_name = Input(placeholder="Please input project name")

@@ -1,5 +1,6 @@
 import supervisely as sly
-from supervisely.app.widgets import Card, ProjectThumbnail, DatasetThumbnail
+from supervisely.app.widgets import Card, DatasetThumbnail, ProjectThumbnail
+
 import src.globals as g
 
 if g.DATASET_ID is None:

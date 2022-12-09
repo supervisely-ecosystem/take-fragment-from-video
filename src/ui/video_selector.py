@@ -1,6 +1,7 @@
 import pandas as pd
 import supervisely as sly
-from supervisely.app.widgets import Card, Table, Button
+from supervisely.app.widgets import Button, Card, Table
+
 import src.globals as g
 import src.ui.video_player as video_player
 
