@@ -45,7 +45,8 @@ def extract_frame_range():
 
     if start_frame_val >= end_frame_val:
         raise sly.app.DialogWindowError(
-            title="Start frame can't be higher or equal to end frame"
+            title="Please submit correct frames on step 3️⃣",
+            description="Start frame can't be higher or equal to end frame",
         )
 
     info = video_selector.current_video
