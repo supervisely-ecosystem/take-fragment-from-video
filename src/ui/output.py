@@ -93,9 +93,7 @@ def upload_video_to_destination(
 
     project_id = destination.get_selected_project_id()
     if project_id is None:
-        project_name = (
-            project_name or g.PROJECT_INFO.name or "extracted_video_fragments"
-        )
+        project_name = project_name or g.PROJECT_INFO.name
         project = g.api.project.create(
             workspace_id=g.WORKSPACE_ID,
             name=project_name,
@@ -106,7 +104,7 @@ def upload_video_to_destination(
 
     dataset_id = destination.get_selected_dataset_id()
     if dataset_id is None:
-        dataset_name = dataset_name or g.DATASET_INFO.name or "ds0"
+        dataset_name = dataset_name or "ds0"
         dataset = g.api.dataset.create(
             project_id=project_id, name=dataset_name, change_name_if_conflict=True
         )
