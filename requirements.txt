@@ -1,1 +1,4 @@
 supervisely==6.68.40
+
+moviepy==1.0.3
+imageio-ffmpeg==0.4.7

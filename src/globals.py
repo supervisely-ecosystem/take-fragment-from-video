@@ -1,5 +1,6 @@
 import os
-import supervisely_lib as sly
+import supervisely as sly
+from supervisely.io.fs import mkdir
 from dotenv import load_dotenv
 
 if sly.is_development():
@@ -21,3 +22,6 @@ PROJECT_META = sly.ProjectMeta.from_json(data=api.project.get_meta(PROJECT_ID))
 
 if DATASET_ID is not None:
     DATASET_INFO = api.dataset.get_info_by_id(id=DATASET_ID)
+
+STORAGE_DIR = os.path.join(my_app.data_dir, "video")
+mkdir(STORAGE_DIR, True)

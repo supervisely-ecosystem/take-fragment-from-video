@@ -1,10 +1,10 @@
 import pandas as pd
 import supervisely as sly
-from supervisely.app.exceptions import DialogWindowError
 from supervisely.app.widgets import Card, Table, Button
 import src.globals as g
 import src.ui.video_player as video_player
-import src.ui.settings as settings
+
+current_video = None
 
 COL_ID = "video id".upper()
 COL_DS = "dataset id".upper()
@@ -30,9 +30,9 @@ reselect_pair_btn = Button("Select other videos", icon="zmdi zmdi-rotate-left")
 reselect_pair_btn.hide()
 
 card = Card(
-    "3️⃣ Select left and right video",
-    "Select different videos for left and right panels. To mark segments on single video just select same video for both panels",
-    collapsable=True,
+    "2️⃣ Select video",
+    "Choose the video from which you wish to extract a fragment",
+    collapsable=False,
     content=table,
     content_top_right=reselect_pair_btn,
 )
@@ -68,11 +68,11 @@ def build_table():
 
 @table.click
 def handle_table_button(datapoint: sly.app.widgets.Table.ClickedDataPoint):
+    global current_video
     if datapoint.button_name is None:
         return
     video_id = datapoint.row[COL_ID]
     current_video = g.api.video.get_info_by_id(video_id)
-
     if datapoint.button_name == SELECT_VIDEO:
         video_player.player.set_video(video_id)
         video_player.preview.set_video_id(video_id)
