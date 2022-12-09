@@ -79,6 +79,7 @@ def handle_table_button(datapoint: sly.app.widgets.Table.ClickedDataPoint):
         video_player.preview.set_video_id(video_id)
         video_player.preview.show()
         video_player.start_frame.max = current_video.frames_count - 1
+        video_player.start_frame.value = 0
         video_player.end_frame.max = current_video.frames_count - 1
         video_player.end_frame.value = current_video.frames_count - 1
         video_player.card.unlock()

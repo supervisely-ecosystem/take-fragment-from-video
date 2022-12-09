@@ -6,8 +6,7 @@ from supervisely.app.widgets import (
     Button,
     Card,
     Container,
-    Field,
-    Input,
+    DestinationProject,
     SlyTqdm,
     VideoThumbnail,
 )
@@ -17,23 +16,7 @@ import src.ui.video_player as video_player
 import src.ui.video_selector as video_selector
 
 # new project
-project_name = Input(placeholder="Please input project name")
-new_project = Field(
-    content=project_name,
-    title="Result project",
-    description="Define destination project and dataset",
-)
-
-dataset_name = Input(placeholder="Please input dataset name")
-new_dataset = Field(
-    content=dataset_name,
-    title="Result dataset",
-    description="Frame range will be extracted to this dataset",
-)
-
-extract_button = Button(text="Extract frame range")
-
-new_project_container = Container(widgets=[new_project, new_dataset])
+destination = DestinationProject(workspace_id=g.WORKSPACE_ID, project_type="videos")
 
 progress = SlyTqdm(show_percents=True)
 progress.hide()
@@ -41,8 +24,9 @@ progress.hide()
 output_video = VideoThumbnail()
 output_video.hide()
 
+extract_button = Button(text="Extract frame range")
 destination_container = Container(
-    widgets=[new_project_container, extract_button, progress, output_video]
+    widgets=[destination, extract_button, progress, output_video]
 )
 
 card = Card(
@@ -52,8 +36,6 @@ card = Card(
     content=destination_container,
     lock_message="Select video fragment frame range before extracting it at step 3️⃣",
 )
-
-card.lock()
 
 
 @extract_button.click
@@ -87,38 +69,57 @@ def extract_frame_range():
         )
 
         upload_video_to_destination(
-            project_name=project_name.get_value(),
-            dataset_name=dataset_name.get_value(),
+            project_name=destination.get_project_name(),
+            dataset_name=destination.get_dataset_name(),
             video_name=output_video_name,
             video_path=output_video_path,
+            start_frame=start_frame_val,
+            end_frame=end_frame_val,
             progress_cb=pbar.update,
         )
 
 
 def upload_video_to_destination(
-    project_name, dataset_name, video_name, video_path, progress_cb
+    project_name,
+    dataset_name,
+    video_name,
+    video_path,
+    start_frame,
+    end_frame,
+    progress_cb,
 ):
     output_video.hide()
 
-    # project_id = project_selector.get_selected_id()
-    project_name = project_name or g.PROJECT_INFO.name
-    project = g.api.project.create(
-        workspace_id=g.WORKSPACE_ID,
-        name=project_name,
-        type=sly.ProjectType.VIDEOS,
-        change_name_if_conflict=True,
-    )
+    project_id = destination.get_selected_project_id()
+    if project_id is None:
+        project_name = (
+            project_name or g.PROJECT_INFO.name or "extracted_video_fragments"
+        )
+        project = g.api.project.create(
+            workspace_id=g.WORKSPACE_ID,
+            name=project_name,
+            type=sly.ProjectType.VIDEOS,
+            change_name_if_conflict=True,
+        )
+        project_id = project.id
 
-    # dataset_id = dataset_selector.get_selected_id()
-    dataset_name = dataset_name or g.DATASET_INFO.name or "ds0"
-    dataset = g.api.dataset.create(
-        project_id=project.id, name=dataset_name, change_name_if_conflict=True
-    )
+    dataset_id = destination.get_selected_dataset_id()
+    if dataset_id is None:
+        dataset_name = dataset_name or g.DATASET_INFO.name or "ds0"
+        dataset = g.api.dataset.create(
+            project_id=project_id, name=dataset_name, change_name_if_conflict=True
+        )
+        dataset_id = dataset.id
 
     video_info = g.api.video.upload_path(
-        dataset_id=dataset.id,
+        dataset_id=dataset_id,
         name=video_name,
         path=video_path,
+        meta={
+            "source_project_id": g.PROJECT_ID,
+            "start_frame": start_frame,
+            "end_frame": end_frame,
+        },
         item_progress=progress_cb,
     )
     output_video.set_video_id(id=video_info.id)
