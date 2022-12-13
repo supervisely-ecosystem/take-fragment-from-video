@@ -1,6 +1,6 @@
 import os
 import subprocess
-
+import math
 import cv2
 import supervisely as sly
 from supervisely.app.widgets import (
@@ -90,16 +90,17 @@ def merge_frames_into_video_fragment(video_info, start_frame, end_frame):
 
 
 def extract_fragment_from_video(video_info, start_frame, end_frame):
+
     time_codes = video_info.frames_to_timecodes
     start_time = time_codes[start_frame]
-    # end_time = time_codes[end_frame]
-    # if end_frame == video_info.frames_count - 1:
-    #     end_time = end_time + time_codes[1]
+    end_time = time_codes[end_frame]
+    if end_frame == video_info.frames_count - 1:
+        end_time = end_time + time_codes[1]
 
-    end_time = time_codes[end_frame] + time_codes[1]
     path_to_video = os.path.join(g.STORAGE_DIR, video_info.name)
     if not os.path.exists(path=path_to_video):
         g.api.video.download_path(id=video_info.id, path=path_to_video)
+
     output_video_name = f"{start_frame}_{end_frame}_{video_info.name}"
     output_video_path = os.path.join(g.STORAGE_DIR, output_video_name)
 
