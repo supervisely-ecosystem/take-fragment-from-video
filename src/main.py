@@ -31,7 +31,3 @@ layout = Container(
 
 app = sly.Application(layout=layout)
 video_selector.build_table()
-
-# @TODO: add progress bar for downloading
-# @TODO: accurate frame range processing
-# @TODO: validate if selected full video

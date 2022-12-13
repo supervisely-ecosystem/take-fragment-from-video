@@ -19,7 +19,7 @@ import src.ui.video_selector as video_selector
 
 destination = DestinationProject(workspace_id=g.WORKSPACE_ID, project_type="videos")
 
-progress = SlyTqdm(show_percents=True)
+progress = SlyTqdm()
 progress.hide()
 
 output_video = VideoThumbnail()
@@ -56,13 +56,15 @@ def validate_selected_frame_range(video_info, start_frame, end_frame):
         )
 
 
-def merge_frames_into_video_fragment(video_info, start_frame, end_frame, progress):
+def merge_frames_into_video_fragment(video_info, start_frame, end_frame):
     frames_dir = os.path.join(g.STORAGE_DIR, "frames")
     mkdir(frames_dir, True)
     frame_indexes = list(range(start_frame, end_frame + 1))
     frame_paths = [os.path.join(frames_dir, f"frame_{idx}.png") for idx in frame_indexes]
     g.api.video.frame.download_paths(
-        video_id=video_info.id, frame_indexes=frame_indexes, paths=frame_paths
+        video_id=video_info.id,
+        frame_indexes=frame_indexes,
+        paths=frame_paths,
     )
 
     output_video_name = f"{start_frame}_{end_frame}_{video_info.name}"
@@ -71,29 +73,28 @@ def merge_frames_into_video_fragment(video_info, start_frame, end_frame, progres
     video = cv2.VideoWriter(
         output_video_path,
         cv2.VideoWriter_fourcc(*"mp4v"),
-        30,
+        g.FRAME_RATE,
         (video_info.frame_width, video_info.frame_height),
     )
-    progress = sly.Progress("Processing video frames:", len(frame_indexes))
     for img_path in frame_paths:
         img = cv2.imread(img_path)
         video.write(img)
         silent_remove(img_path)
-        progress.iter_done_report()
     video.release()
     remove_dir(frames_dir)
 
     return output_video_name, output_video_path
 
 
-def extract_fragment_from_video(video_info, start_frame, end_frame, progress):
+def extract_fragment_from_video(video_info, start_frame, end_frame):
     time_codes = video_info.frames_to_timecodes
     start_time = time_codes[start_frame]
-    end_time = time_codes[end_frame - 1]
+    end_time = time_codes[end_frame]
+
     duration = str(end_time - start_time)
     path_to_video = os.path.join(g.STORAGE_DIR, video_info.name)
     if not os.path.exists(path=path_to_video):
-        g.api.video.download_path(id=video_info.id, path=path_to_video, progress_cb=progress.update)
+        g.api.video.download_path(id=video_info.id, path=path_to_video)
     output_video_name = f"{start_frame}_{end_frame}_{video_info.name}"
     output_video_path = os.path.join(g.STORAGE_DIR, output_video_name)
 
@@ -117,23 +118,28 @@ def extract_fragment_from_video(video_info, start_frame, end_frame, progress):
 
 @extract_button.click
 def extract_frame_range():
+    output_video.hide()
+    progress.show()
+
     start_frame_val = video_player.start_frame.get_value()
     end_frame_val = video_player.end_frame.get_value()
     info = video_selector.current_video
     validate_selected_frame_range(info, start_frame_val, end_frame_val)
 
-    progress.show()
-    with progress(message=f"Processing {info.name}", total=1) as pbar:
+    with progress(message=f"Processing {info.name}", total=3) as pbar:
         download_mode = calculate_threshold(info, start_frame_val, end_frame_val)
+        pbar.update()
 
         if download_mode == g.FULL_VIDEO:
             video_name, video_path = extract_fragment_from_video(
-                info, start_frame_val, end_frame_val, pbar
+                info, start_frame_val, end_frame_val
             )
         else:
             video_name, video_path = merge_frames_into_video_fragment(
-                info, start_frame_val, end_frame_val, pbar
+                info, start_frame_val, end_frame_val
             )
+        pbar.update()
+
         upload_video_to_destination(
             project_name=destination.get_project_name(),
             dataset_name=destination.get_dataset_name(),
@@ -141,21 +147,13 @@ def extract_frame_range():
             video_path=video_path,
             start_frame=start_frame_val,
             end_frame=end_frame_val,
-            progress_cb=pbar.update,
+            progress=pbar,
         )
 
 
 def upload_video_to_destination(
-    project_name,
-    dataset_name,
-    video_name,
-    video_path,
-    start_frame,
-    end_frame,
-    progress_cb,
+    project_name, dataset_name, video_name, video_path, start_frame, end_frame, progress
 ):
-    output_video.hide()
-
     project_id = destination.get_selected_project_id()
     if project_id is None:
         project_name = project_name or g.PROJECT_INFO.name
@@ -184,8 +182,8 @@ def upload_video_to_destination(
             "start_frame": start_frame,
             "end_frame": end_frame,
         },
-        item_progress=progress_cb,
     )
     silent_remove(video_path)
+    progress.update()
     output_video.set_video_id(id=video_info.id)
     output_video.show()
