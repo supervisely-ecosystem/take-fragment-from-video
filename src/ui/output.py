@@ -1,7 +1,8 @@
 import os
+import subprocess
 
+import cv2
 import supervisely as sly
-from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from supervisely.app.widgets import (
     Button,
     Card,
@@ -10,12 +11,12 @@ from supervisely.app.widgets import (
     SlyTqdm,
     VideoThumbnail,
 )
+from supervisely.io.fs import get_file_name, silent_remove, mkdir, remove_dir
 
 import src.globals as g
 import src.ui.video_player as video_player
 import src.ui.video_selector as video_selector
 
-# new project
 destination = DestinationProject(workspace_id=g.WORKSPACE_ID, project_type="videos")
 
 progress = SlyTqdm(show_percents=True)
@@ -25,9 +26,7 @@ output_video = VideoThumbnail()
 output_video.hide()
 
 extract_button = Button(text="Extract frame range")
-destination_container = Container(
-    widgets=[destination, extract_button, progress, output_video]
-)
+destination_container = Container(widgets=[destination, extract_button, progress, output_video])
 
 card = Card(
     "4️⃣ Output project",
@@ -38,42 +37,108 @@ card = Card(
 )
 
 
-@extract_button.click
-def extract_frame_range():
-    start_frame_val = video_player.start_frame.get_value()
-    end_frame_val = video_player.end_frame.get_value()
+def calculate_threshold(video_info, start_frame, end_frame):
+    thresh_percent = (end_frame - start_frame) / video_info.frames_count
+    return g.FULL_VIDEO if thresh_percent > g.DOWNLOAD_THRESHOLD else g.BY_FRAME
 
-    if start_frame_val >= end_frame_val:
+
+def validate_selected_frame_range(video_info, start_frame, end_frame):
+    if start_frame >= end_frame:
         raise sly.app.DialogWindowError(
             title="Please submit correct frames on step 3️⃣",
             description="Start frame can't be higher or equal to end frame",
         )
 
-    info = video_selector.current_video
-    progress.show()
-    with progress(message=f"Processing {info.name}", total=1) as pbar:
-        time_codes = info.frames_to_timecodes
-        start_time = time_codes[start_frame_val]
-        end_time = time_codes[end_frame_val]
-        path_to_video = os.path.join(g.STORAGE_DIR, info.name)
-        if not os.path.exists(path=path_to_video):
-            g.api.video.download_path(
-                id=info.id, path=path_to_video, progress_cb=pbar.update
-            )
-        output_video_name = f"{start_frame_val}_{end_frame_val}_{info.name}"
-        output_video_path = os.path.join(g.STORAGE_DIR, output_video_name)
-        ffmpeg_extract_subclip(
-            filename=path_to_video,
-            t1=start_time,
-            t2=end_time,
-            targetname=output_video_path,
+    if start_frame == 0 and end_frame == video_info.frames_count - 1:
+        raise sly.app.DialogWindowError(
+            title="Please submit correct frames on step 3️⃣",
+            description="You have selected full video length. There's nothing to extract.",
         )
 
+
+def merge_frames_into_video_fragment(video_info, start_frame, end_frame, progress):
+    frames_dir = os.path.join(g.STORAGE_DIR, "frames")
+    mkdir(frames_dir, True)
+    frame_indexes = list(range(start_frame, end_frame + 1))
+    frame_paths = [os.path.join(frames_dir, f"frame_{idx}.png") for idx in frame_indexes]
+    g.api.video.frame.download_paths(
+        video_id=video_info.id, frame_indexes=frame_indexes, paths=frame_paths
+    )
+
+    output_video_name = f"{start_frame}_{end_frame}_{video_info.name}"
+    output_video_path = os.path.join(g.STORAGE_DIR, output_video_name)
+
+    video = cv2.VideoWriter(
+        output_video_path,
+        cv2.VideoWriter_fourcc(*"mp4v"),
+        30,
+        (video_info.frame_width, video_info.frame_height),
+    )
+    progress = sly.Progress("Processing video frames:", len(frame_indexes))
+    for img_path in frame_paths:
+        img = cv2.imread(img_path)
+        video.write(img)
+        silent_remove(img_path)
+        progress.iter_done_report()
+    video.release()
+    remove_dir(frames_dir)
+
+    return output_video_name, output_video_path
+
+
+def extract_fragment_from_video(video_info, start_frame, end_frame, progress):
+    time_codes = video_info.frames_to_timecodes
+    start_time = time_codes[start_frame]
+    end_time = time_codes[end_frame - 1]
+    duration = str(end_time - start_time)
+    path_to_video = os.path.join(g.STORAGE_DIR, video_info.name)
+    if not os.path.exists(path=path_to_video):
+        g.api.video.download_path(id=video_info.id, path=path_to_video, progress_cb=progress.update)
+    output_video_name = f"{start_frame}_{end_frame}_{video_info.name}"
+    output_video_path = os.path.join(g.STORAGE_DIR, output_video_name)
+
+    subprocess.call(
+        [
+            "ffmpeg",
+            "-ss",
+            str(start_time),
+            "-t",
+            duration,
+            "-i",
+            f"{path_to_video}",
+            "-c",
+            "copy",
+            f"{output_video_path}",
+        ]
+    )
+
+    return output_video_name, output_video_path
+
+
+@extract_button.click
+def extract_frame_range():
+    start_frame_val = video_player.start_frame.get_value()
+    end_frame_val = video_player.end_frame.get_value()
+    info = video_selector.current_video
+    validate_selected_frame_range(info, start_frame_val, end_frame_val)
+
+    progress.show()
+    with progress(message=f"Processing {info.name}", total=1) as pbar:
+        download_mode = calculate_threshold(info, start_frame_val, end_frame_val)
+
+        if download_mode == g.FULL_VIDEO:
+            video_name, video_path = extract_fragment_from_video(
+                info, start_frame_val, end_frame_val, pbar
+            )
+        else:
+            video_name, video_path = merge_frames_into_video_fragment(
+                info, start_frame_val, end_frame_val, pbar
+            )
         upload_video_to_destination(
             project_name=destination.get_project_name(),
             dataset_name=destination.get_dataset_name(),
-            video_name=output_video_name,
-            video_path=output_video_path,
+            video_name=video_name,
+            video_path=video_path,
             start_frame=start_frame_val,
             end_frame=end_frame_val,
             progress_cb=pbar.update,
@@ -121,5 +186,6 @@ def upload_video_to_destination(
         },
         item_progress=progress_cb,
     )
+    silent_remove(video_path)
     output_video.set_video_id(id=video_info.id)
     output_video.show()

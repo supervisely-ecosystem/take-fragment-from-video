@@ -1,7 +1,7 @@
 import os
 
-from dotenv import load_dotenv
 import supervisely as sly
+from dotenv import load_dotenv
 
 # for convenient debug, has no effect in production
 if sly.utils.is_development():
@@ -12,7 +12,6 @@ from supervisely.app.widgets import Container
 
 import src.globals as g
 import src.ui.input as input
-
 import src.ui.output as output
 import src.ui.video_player as video_player
 import src.ui.video_selector as video_selector
@@ -32,3 +31,7 @@ layout = Container(
 
 app = sly.Application(layout=layout)
 video_selector.build_table()
+
+# @TODO: add progress bar for downloading
+# @TODO: accurate frame range processing
+# @TODO: validate if selected full video

@@ -8,10 +8,8 @@ if sly.is_development():
     load_dotenv("local.env")
     load_dotenv(os.path.expanduser("~/supervisely.env"))
 
-my_app = sly.AppService()
-api: sly.Api = my_app.public_api
+api: sly.Api = sly.Api.from_env()
 
-TASK_ID = my_app.task_id
 TEAM_ID = sly.env.team_id()
 WORKSPACE_ID = sly.env.workspace_id()
 PROJECT_ID = sly.env.project_id()
@@ -24,5 +22,9 @@ DATASET_INFO = None
 if DATASET_ID is not None:
     DATASET_INFO = api.dataset.get_info_by_id(id=DATASET_ID)
 
-STORAGE_DIR = os.path.join(my_app.data_dir, "video")
+STORAGE_DIR = os.path.join(sly.app.get_data_dir(), "video")
 mkdir(STORAGE_DIR, True)
+
+DOWNLOAD_THRESHOLD = 0.25
+FULL_VIDEO = "full_video"
+BY_FRAME = "by_frame"
