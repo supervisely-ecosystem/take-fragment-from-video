@@ -12,10 +12,13 @@ from supervisely.app.widgets import (
     VideoThumbnail,
 )
 from supervisely.io.fs import get_file_name, silent_remove, mkdir, remove_dir
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+from moviepy.editor import VideoFileClip
 
 import src.globals as g
 import src.ui.video_player as video_player
 import src.ui.video_selector as video_selector
+
 
 destination = DestinationProject(workspace_id=g.WORKSPACE_ID, project_type="videos")
 
@@ -90,28 +93,18 @@ def extract_fragment_from_video(video_info, start_frame, end_frame):
     time_codes = video_info.frames_to_timecodes
     start_time = time_codes[start_frame]
     end_time = time_codes[end_frame]
+    if end_frame == video_info.frames_count - 1:
+        end_time = end_time + time_codes[1]
 
-    duration = str(end_time - start_time)
     path_to_video = os.path.join(g.STORAGE_DIR, video_info.name)
     if not os.path.exists(path=path_to_video):
         g.api.video.download_path(id=video_info.id, path=path_to_video)
     output_video_name = f"{start_frame}_{end_frame}_{video_info.name}"
     output_video_path = os.path.join(g.STORAGE_DIR, output_video_name)
 
-    subprocess.call(
-        [
-            "ffmpeg",
-            "-ss",
-            str(start_time),
-            "-t",
-            duration,
-            "-i",
-            f"{path_to_video}",
-            "-c",
-            "copy",
-            f"{output_video_path}",
-        ]
-    )
+    clip = VideoFileClip(path_to_video)
+    clip = clip.subclip(start_time, end_time)
+    clip.write_videofile(output_video_path)
 
     return output_video_name, output_video_path
 
