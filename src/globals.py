@@ -26,6 +26,6 @@ STORAGE_DIR = os.path.join(sly.app.get_data_dir(), "video")
 mkdir(STORAGE_DIR, True)
 
 DOWNLOAD_THRESHOLD = 0.25
-FRAME_RATE = 30
+FRAME_RATE = 24
 FULL_VIDEO = "full_video"
 BY_FRAME = "by_frame"
