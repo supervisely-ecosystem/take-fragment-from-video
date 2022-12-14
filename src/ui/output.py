@@ -1,8 +1,11 @@
+import math
 import os
 import subprocess
-import math
+
 import cv2
 import supervisely as sly
+from moviepy.editor import VideoFileClip
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from supervisely.app.widgets import (
     Button,
     Card,
@@ -11,14 +14,11 @@ from supervisely.app.widgets import (
     SlyTqdm,
     VideoThumbnail,
 )
-from supervisely.io.fs import get_file_name, silent_remove, mkdir, remove_dir
-from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
-from moviepy.editor import VideoFileClip
+from supervisely.io.fs import get_file_name, mkdir, remove_dir, silent_remove
 
 import src.globals as g
 import src.ui.video_player as video_player
 import src.ui.video_selector as video_selector
-
 
 destination = DestinationProject(workspace_id=g.WORKSPACE_ID, project_type="videos")
 
@@ -93,10 +93,6 @@ def extract_fragment_from_video(video_info, start_frame, end_frame):
 
     time_codes = video_info.frames_to_timecodes
     start_time = time_codes[start_frame]
-    # end_time = time_codes[end_frame]
-    # if end_frame == video_info.frames_count - 1:
-    # end_time = end_time + time_codes[1]
-
     end_time = time_codes[end_frame] + time_codes[1]
 
     path_to_video = os.path.join(g.STORAGE_DIR, video_info.name)
@@ -120,10 +116,6 @@ def extract_fragment_from_video(video_info, start_frame, end_frame):
             f"{output_video_path}",
         ]
     )
-
-    # clip = VideoFileClip(path_to_video)
-    # clip = clip.subclip(start_time, end_time)
-    # clip.write_videofile(output_video_path)
 
     return output_video_name, output_video_path
 
