@@ -2,7 +2,7 @@
 
 <img src="https://user-images.githubusercontent.com/48913536/206726139-37f34814-e11d-4de9-aaa1-3c6257d2f5af.png"/>
 
-# Take Fragmentv from Video
+# Take Fragment from Video
 
 <p align="center">
   <a href="#Overview">Overview</a> •
