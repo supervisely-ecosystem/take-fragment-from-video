@@ -1,11 +1,8 @@
-import math
 import os
 import subprocess
 
 import cv2
 import supervisely as sly
-from moviepy.editor import VideoFileClip
-from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from supervisely.app.widgets import (
     Button,
     Card,
@@ -14,7 +11,7 @@ from supervisely.app.widgets import (
     SlyTqdm,
     VideoThumbnail,
 )
-from supervisely.io.fs import get_file_name, mkdir, remove_dir, silent_remove
+from supervisely.io.fs import mkdir, remove_dir, silent_remove
 
 import src.globals as g
 import src.ui.video_player as video_player
@@ -85,6 +82,26 @@ def merge_frames_into_video_fragment(video_info, start_frame, end_frame):
         silent_remove(img_path)
     video.release()
     remove_dir(frames_dir)
+
+    if os.path.isfile(output_video_path):
+        converted_path = output_video_path.replace(
+            output_video_path, f"{output_video_path}_converted.mp4"
+        )
+        subprocess.call(
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                f"{output_video_path}",
+                "-c:v",
+                "libx264",
+                "-c:a",
+                "libopus",
+                f"{converted_path}",
+            ]
+        )
+        os.remove(output_video_path)
+        os.rename(converted_path, output_video_path)
 
     return output_video_name, output_video_path
 
