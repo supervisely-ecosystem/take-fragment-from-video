@@ -7,7 +7,7 @@
     "data transformation",
     "data operations"
   ],
-  "docker_image": "supervisely/data-operations:0.0.5",
+  "docker_image": "supervisely/data-operations:6.73.483",
   "icon": "https://user-images.githubusercontent.com/48913536/206726419-8a10690b-ee0b-436e-9899-ab7ab8f66dbd.png",
   "poster": "https://user-images.githubusercontent.com/48913536/206726139-37f34814-e11d-4de9-aaa1-3c6257d2f5af.png",
   "context_menu": {
@@ -18,5 +18,6 @@
     ]
   },
   "entrypoint": "python -m uvicorn src.main:app --host 0.0.0.0 --port 8000",
-  "port": 8000
+  "port": 8000,
+  "min_instance_version": "6.15.35"
 }
